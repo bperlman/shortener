@@ -39,6 +39,8 @@ class Shortener::ShortenedUrl < ActiveRecord::Base
       if destination_url.owner == owner
         destination_url
       else
+        custom_key = custom_key.downcase unless custom_key.nil?
+        
         generate!(
           destination_url.url,
           owner:      owner,
@@ -53,6 +55,9 @@ class Shortener::ShortenedUrl < ActiveRecord::Base
       creation_method = fresh ? 'create' : 'first_or_create'
 
       url_to_save = Shortener.auto_clean_url ? clean_url(destination_url) : destination_url
+
+      custom_key = custom_key.downcase unless custom_key.nil?
+      
       scope.where(url: url_to_save, category: category).send(
         creation_method,
         custom_key: custom_key,
@@ -85,7 +90,9 @@ class Shortener::ShortenedUrl < ActiveRecord::Base
   end
 
   def self.fetch_with_token(token: nil, additional_params: {}, track: true)
-    shortened_url = ::Shortener::ShortenedUrl.unexpired.where(unique_key: token).first
+
+    token = token.downcase unless token.nil?
+    shortened_url = ::Shortener::ShortenedUrl.unexpired.where("lower(unique_key) = ?",token).first
 
     url = if shortened_url
       shortened_url.increment_usage_count if track
